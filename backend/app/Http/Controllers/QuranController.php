@@ -6,7 +6,7 @@ use App\Models\Surah;
 
 class QuranController extends Controller
 {
-    // Menampilkan daftar semua surah
+    // Menampilkan daftar semua sura
     public function showAllSurahs()
     {
         // Ambil semua data surah dari database
