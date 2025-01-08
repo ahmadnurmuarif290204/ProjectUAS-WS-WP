@@ -5,25 +5,23 @@ namespace App\Http\Controllers;
 use App\Models\Quran;
 use App\Models\Detail;
 use App\Models\Tafsir;
-use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 class QuranController extends Controller
 {
-
     public function quran()
     {
+
         $response = Http::get('https://equran.id/api/v2/surat');
+
 
         if ($response->successful()) {
             $data = $response->json()['data'];
 
             foreach ($data as $item) {
                 Quran::updateOrCreate(
-                    [
-                        'nomorSurah' => $item['nomor'],
-                    ],
+                    ['nomorSurah' => $item['nomor']],
                     [
                         'namaSurah' => $item['nama'],
                         'namaLatin' => $item['namaLatin'],
@@ -36,64 +34,32 @@ class QuranController extends Controller
                 );
             }
 
-
-
             $surah = Quran::all();
-            return view('surah.index', compact('surah'));
             return response()->json([
                 'code' => 200,
-                'message' => 'Data surah retrieved successfully',
+                'message' => 'Data surah berhasil diambil',
                 'data' => $surah,
             ]);
-            return view('quran.index', compact('surah'));
         } else {
             return response()->json([
                 'code' => 500,
-                'message' => 'Failed to fetch data surah from external API',
+                'message' => 'Gagal mengambil data surah dari API eksternal',
             ], 500);
         }
     }
-    public function index()
+
+    public function importDetailsBySurah($nomorSurah)
     {
-        $surahs = Quran::all();
-        return view('quran.main', compact('surahs'));
-    }
-
-    public function showSurah($nomor)
-    {
-        $surah = Detail::find($nomor);
-        $ayat = $surah->ayat;
-        $tafsir = $surah->tafsir;
-
-        $audioSurahUrl = "https://equran.nos.wjv-1.neo.id/audio-full/Abdullah-Al-Juhany/001.mp3";
-
-        return view('surah.show', compact('surah', 'ayat', 'tafsir', 'audioSurahUrl'));
-    }
-
-
-
-    public function importAyat()
-    {
-
-        $client = new Client([
-            'timeout' => 7200,
-            'connect_timeout' => 7200,
-            'retry' => 10,
-        ]);
-
-        for ($nomor = 1; $nomor <= 114; $nomor++) {
-            $url = "https://equran.id/api/v2/surat/{$nomor}";
-            $response = Http::get($url);
+        try {
+            $response = Http::get("https://equran.id/api/v2/surat/$nomorSurah");
 
             if ($response->successful()) {
                 $data = $response->json()['data']['ayat'];
 
+
                 foreach ($data as $ayat) {
                     Detail::updateOrCreate(
-                        [
-                            'nomorSurah' => $nomor,
-                            'nomorAyat' => $ayat['nomorAyat'],
-                        ],
+                        ['nomorSurah' => $nomorSurah, 'nomorAyat' => $ayat['nomorAyat']],
                         [
                             'teksArab' => $ayat['teksArab'],
                             'teksLatin' => $ayat['teksLatin'],
@@ -102,98 +68,173 @@ class QuranController extends Controller
                         ]
                     );
                 }
+
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Data detail ayat berhasil diimpor',
+                ]);
             } else {
                 return response()->json([
                     'code' => 500,
-                    'message' => "Failed to fetch data ayat for surah {$nomor} from external API"
+                    'message' => 'Gagal mengambil detail ayat dari API eksternal',
                 ], 500);
             }
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => 'Terjadi kesalahan saat mengimpor detail ayat',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getDetailsBySurah($nomorSurah)
+    {
+        $details = Detail::where('nomorSurah', $nomorSurah)->get();
+
+
+        if ($details->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Tidak ada detail ayat ditemukan untuk surah ini',
+            ], 404);
         }
 
         return response()->json([
             'code' => 200,
-            'message' => 'All ayat data retrieved successfully'
+            'message' => 'Detail ayat berhasil diambil',
+            'data' => $details,
         ]);
     }
 
-    public function audioSurah($nomor)
+    public function getDetailAyat($nomorSurah, $nomorAyat)
     {
-        $surah = Quran::where('nomorSurah', $nomor)->first();
-        if ($surah && $surah->audio_full) {
-            $audioUrls = json_decode($surah->audio_full, true);
-            return view('quran.audio', compact('surah', 'audioUrls'));
+        $detail = Detail::where('nomorSurah', $nomorSurah)
+            ->where('nomorAyat', $nomorAyat)
+            ->first();
+
+
+        if (!$detail) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Detail ayat tidak ditemukan untuk surah dan ayat ini',
+            ], 404);
         }
 
-        return redirect()->route('surah.index')->with('error', 'Audio tidak tersedia untuk surah ini.');
-    }
-
-
-    public function ayat($nomor)
-    {
-        $ayat = Detail::where('nomorSurah', $nomor)->get();
-        $tafsir = Tafsir::where('nomorSurah', $nomor)->get();
-
-
-        foreach ($ayat as $item) {
-            $audioArray = json_decode($item->audio, true);
-            $item->audio_url = $audioArray['01'] ?? '';
-        }
-
-        return view('ayat.index', compact('ayat', 'tafsir', 'nomor'));
-    }
-
-
-
-    public function importTafsir()
-    {
-
-        $client = new Client([
-            'timeout' => 7200,
-            'connect_timeout' => 7200,
-            'retry' => 10,
+        return response()->json([
+            'code' => 200,
+            'message' => 'Detail ayat berhasil diambil',
+            'data' => $detail,
         ]);
+    }
+    public function getAllDetail()
+    {
+        $details = Detail::all();
 
-        for ($nomor = 1; $nomor <= 114; $nomor++) {
-            $url = "https://equran.id/api/v2/tafsir/{$nomor}";
-            $response = Http::get($url);
+        if ($details->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Tidak ada data ayat ditemukan',
+            ], 404);
+        }
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Semua ayat berhasil diambil',
+            'data' => $details,
+        ]);
+    }
+
+
+    public function importTafsirBySurah($nomorSurah)
+    {
+        try {
+            $response = Http::get("https://equran.id/api/v2/tafsir/$nomorSurah");
 
             if ($response->successful()) {
                 $data = $response->json()['data']['tafsir'];
 
+
                 foreach ($data as $ayat) {
                     Tafsir::updateOrCreate(
-                        [
-                            'nomorSurah' => $nomor,
-                            'nomorAyat' => $ayat['ayat'],
-                        ],
-                        [
-                            'teksTafsir' => $ayat['teks'],
-                        ]
+                        ['nomorSurah' => $nomorSurah, 'nomorAyat' => $ayat['ayat']],
+                        ['teksTafsir' => $ayat['teks']]
                     );
                 }
+
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Data tafsir berhasil diimpor',
+                ]);
             } else {
                 return response()->json([
                     'code' => 500,
-                    'message' => 'Failed to fetch data tafsir for surah {$nomor} from external API'
+                    'message' => 'Gagal mengambil tafsir dari API eksternal',
                 ], 500);
             }
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => 'Terjadi kesalahan saat mengimpor tafsir',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function getAllTafsir()
+    {
+        $tafsir = Tafsir::all();
+
+        if ($tafsir->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Tidak ada data tafsir ditemukan',
+            ], 404);
         }
 
         return response()->json([
             'code' => 200,
-            'message' => 'All tafsir data retrieved successfully'
+            'message' => 'Semua tafsir berhasil diambil',
+            'data' => $tafsir,
         ]);
     }
 
-    public function tafsir($nomor)
-    {
 
-        $tafsir = Tafsir::where('nomorSurah', $nomor)->get();
-        return view('tafsir.index', compact('tafsir', 'nomor'));
+    public function getTafsirBySurah($nomorSurah)
+    {
+        $tafsir = Tafsir::where('nomorSurah', $nomorSurah)->get();
+
+        if ($tafsir->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Tidak ada tafsir ditemukan untuk surah ini',
+            ], 404);
+        }
+
         return response()->json([
             'code' => 200,
-            'message' => 'Data tafsir retrieved successfully',
-            'data' => ($tafsir),
+            'message' => 'Tafsir berhasil diambil',
+            'data' => $tafsir,
+        ]);
+    }
+
+
+    public function getTafsirByAyat($nomorSurah, $nomorAyat)
+    {
+        $tafsir = Tafsir::where('nomorSurah', $nomorSurah)
+            ->where('nomorAyat', $nomorAyat)
+            ->first();
+
+        if (!$tafsir) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Tafsir tidak ditemukan untuk surah dan ayat ini',
+            ], 404);
+        }
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Tafsir berhasil diambil',
+            'data' => $tafsir,
         ]);
     }
 }
