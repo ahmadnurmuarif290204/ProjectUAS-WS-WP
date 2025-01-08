@@ -5,15 +5,15 @@ use Illuminate\Database\Eloquent\Model;
 use App\Http\Controllers\QuranController;
 
 
-// buat api
-
-Route::get('/qurans', [QuranController::class, 'index']);
-Route::get('/qurans/{id}', [QuranController::class, 'show']);
-Route::get('/qurans/surah/{nomorSurah}', [QuranController::class, 'getBySurahNumber']);
-
-
-Route::get('/qurans/details/{nomorSurah}', [QuranController::class, 'getDetailsBySurah']);
-Route::get('/qurans/details/{nomorSurah}/{nomorAyat}', [QuranController::class, 'getDetailAyat']);
-
-Route::get('/qurans/tafsir/{nomorSurah}', [QuranController::class, 'getTafsirBySurah']);
-Route::get('/qurans/tafsir/{nomorSurah}/{nomorAyat}', [QuranController::class, 'getTafsirAyat']);
+// untuk api surah
+Route::get('/quran', [QuranController::class, 'quran']);
+// untuk api ayat
+Route::get('/details/{nomorSurah}', [QuranController::class, 'getDetailsBySurah']);
+Route::get('/details', [QuranController::class, 'getAllDetail']);
+Route::get('/details/{nomorSurah}/{nomorAyat}', [QuranController::class, 'getDetailAyat']);
+Route::get('/import-details/{nomorSurah}', [QuranController::class, 'importDetailsBySurah']);
+// untuk api tafsir nya 
+Route::get('/tafsir/{nomorSurah}', [QuranController::class, 'getTafsirBySurah']);
+Route::get('/tafsir', [QuranController::class, 'getAllTafsir']);
+Route::get('/tafsir/{nomorSurah}/{nomorAyat}', [QuranController::class, 'getTafsirByAyat']);
+Route::get('/import-tafsir/{nomorSurah}', [QuranController::class, 'importTafsirBySurah']);
