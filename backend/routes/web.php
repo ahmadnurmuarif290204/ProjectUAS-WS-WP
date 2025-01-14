@@ -11,11 +11,3 @@ Route::get('/', function () {
 });
 
 
-Route::get('/', function () {
-    return view('halaman_awal');
-});
-
-Route::get('/surah', [QuranController::class, 'quran'])->name('surah.index');
-Route::get('/surah/{nomor}', [QuranController::class, 'ayat'])->name('surah.ayat');
-Route::get('/tafsir/{nomor}', [QuranController::class, 'tafsir'])->name('surah.tafsir');
-Route::get('/surah/audio/{nomor}', [QuranController::class, 'audioSurah'])->name('surah.audio');
