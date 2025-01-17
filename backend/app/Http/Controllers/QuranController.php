@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Http;
 
 class QuranController extends Controller
 {
-    // Fungsi untuk ambil data Surah dari API equran.id dan simpen ke database
     public function quran()
     {
         $response = Http::get('https://equran.id/api/v2/surat');
@@ -43,14 +42,12 @@ class QuranController extends Controller
             ]);
         }
 
-        // Respon kalo gagal ambil data dari API
+        
         return response()->json([
             'kode' => 500,
             'pesan' => 'Kamu gagal ambil data Surah nih !!',
         ], 500);
-    }
-
-    // Fungsi buat ambil semua detail ayat yang ada di database
+    }    
     public function getAllDetail()
     {
         return response()->json([
@@ -60,7 +57,6 @@ class QuranController extends Controller
         ]);
     }
 
-    // Fungsi buat ambil detail ayat berdasarkan nomor Surat
     public function getDetailsBySurah($nomorSurah)
     {
         $details = Detail::where('nomorSurah', $nomorSurah)->get();
@@ -79,10 +75,8 @@ class QuranController extends Controller
         ]);
     }
 
-    // Fungsi buat ambil detail ayat berdasarkan nomor Surah dan Ayat
     public function getDetailAyat($nomorSurah, $nomorAyat)
     {
-        // Cari detail ayat yang cocok dengan nomor Surah dan Ayat
         $detailAyat = Detail::where('nomorSurah', $nomorSurah)
             ->where('nomorAyat', $nomorAyat)
             ->first();
@@ -101,7 +95,6 @@ class QuranController extends Controller
         ]);
     }
 
-    // Fungsi untuk Impor semua data detail ayat dari API ke database
     public function importDetails()
     {
         for ($nomor = 1; $nomor <= 114; $nomor++) {
@@ -123,7 +116,6 @@ class QuranController extends Controller
                     );
                 }
             } else {
-                // Respon Kalo gagal ambil data, kasih tau error
                 return response()->json([
                     'kode' => 500,
                     'pesan' => "Kamu gagal ambil data untuk Surah {$nomor}",
@@ -137,7 +129,6 @@ class QuranController extends Controller
         ]);
     }
 
-    // Fungsi buat ambil tafsir berdasarkan nomor Surah
     public function getTafsirBySurah($nomorSurah)
     {
         $tafsir = Tafsir::where('nomorSurah', $nomorSurah)->get();
@@ -156,7 +147,6 @@ class QuranController extends Controller
         ]);
     }
 
-    // Fungsi buat ambil semua tafsir yang ada di database
     public function getAllTafsir()
     {
         return response()->json([
@@ -166,7 +156,6 @@ class QuranController extends Controller
         ]);
     }
 
-    // Fungsi buat ambil tafsir berdasarkan nomor Surah dan Ayat
     public function getTafsirByAyat($nomorSurah, $nomorAyat)
     {
         $tafsir = Tafsir::where('nomorSurah', $nomorSurah)
